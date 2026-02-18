@@ -1,0 +1,9 @@
+fastapi
+mongoengine
+passlib[bcrypt]
+python-jose[cryptography]
+sendgrid
+python-multipart
+pydantic
+requests
+flask-cors
