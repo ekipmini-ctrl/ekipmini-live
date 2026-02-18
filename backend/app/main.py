@@ -1,1 +1,48 @@
-from fastapi import FastAPI\nfrom fastapi.middleware.cors import CORSMiddleware\n\napp = FastAPI()\n\n# CORS setup\napp.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])\n\n# Authentication routes\n@app.post("/login")\nasync def login(username: str, password: str):\n    # Implement your authentication logic here\n    return {"message": "Login successful"} \n\n@app.post("/register")\nasync def register(username: str, password: str):\n    # Implement your registration logic here\n    return {"message": "Registration successful"} \n\n# API endpoints for HR management\n@app.get("/employees")\nasync def get_employees():\n    # Logic to get all employees\n    return [{"id": 1, "name": "John Doe"}, {"id": 2, "name": "Jane Doe"}]\n\n@app.post("/employees")\nasync def add_employee(name: str):\n    # Logic to add a new employee\n    return {"message": "Employee added successfully"} \n\n@app.put("/employees/{employee_id}")\nasync def update_employee(employee_id: int, name: str):\n    # Logic to update an employee\n    return {"message": "Employee updated successfully"} \n\n@app.delete("/employees/{employee_id}")\nasync def delete_employee(employee_id: int):\n    # Logic to delete an employee\n    return {"message": "Employee deleted successfully"} ","message":"Setup FastAPI application with CORS, middleware, authentication, and API endpoints for HR management.","owner":"ekipmini-ctrl","path":"backend/app/main.py","repo":"ekipmini-live"}
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.websockets import WebSocket
+from fastapi import WebSocketDisconnect
+
+app = FastAPI()
+
+# CORS setup
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Update this with your allowed origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# WebSocket Support
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, WebSocket] = {}
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections[websocket.client] = websocket
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.pop(websocket.client, None)
+
+    async def send_message(self, message: str):
+        for connection in self.active_connections.values():
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await manager.send_message(data)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+# Sample route
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the FastAPI app!"}
